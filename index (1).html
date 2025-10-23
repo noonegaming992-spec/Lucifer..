@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Morse Code Love Message</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
+    body {
+      background: linear-gradient(135deg, #ffafbd, #ffc3a0);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .container {
+      position: relative;
+      width: 100%; max-width: 800px;
+      padding: 40px;
+      background: rgba(255,255,255,0.95);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      text-align: center;
+      overflow: hidden;
+    }
+    h1 { color: #e75480; margin-bottom: 20px; font-size: 2.25rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.08); }
+    .description { color: #555; margin-bottom: 20px; font-size: 1.05rem; line-height: 1.5; }
+    .morse-input-container { margin-bottom: 20px; display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
+    .morse-input {
+      width: 100%; max-width: 520px;
+      padding: 12px 14px;
+      border-radius: 10px; border: 2px solid #e75480;
+      font-size: 1.05rem; text-align: center;
+      transition: box-shadow .2s ease;
+    }
+    .morse-input:focus { outline: none; box-shadow: 0 0 10px rgba(231,84,128,0.25); }
+    .button {
+      background: linear-gradient(to right,#e75480,#ff8fab);
+      color: #fff; border: none; padding: 10px 20px; border-radius: 999px;
+      cursor: pointer; font-size: 1rem; box-shadow: 0 4px 12px rgba(231,84,128,0.25);
+    }
+    .button:active { transform: translateY(1px); }
+    .message-container {
+      display: none;
+      margin-top: 24px;
+      padding: 22px;
+      border-radius: 14px;
+      background: linear-gradient(135deg,#ffdde1,#ee9ca7);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+      animation: fadeIn .6s ease;
+      text-align: left;
+    }
+    .message-header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .decoded { font-weight:600; color:#8a2be2; font-size:1.25rem; margin-bottom:8px; }
+    .love-message { font-size:1.05rem; color:#5a2b62; margin-bottom:8px; }
+    .signature { color:#e75480; font-style:italic; }
+    .instructions { background:#f8f8f8; padding:18px; border-radius:10px; margin-top:22px; text-align:left; }
+    .instructions h3 { color:#e75480; margin-bottom:8px; }
+    .instructions ul { padding-left:18px; margin-bottom:8px; }
+    .morse-example { font-family: monospace; background:#f0f0f0; padding:6px 8px; border-radius:6px; display:inline-block; }
+    .error-message { color: #a00000; margin-top: 10px; font-weight:600; display:none; }
+    .hint { margin-top:10px; color:#777; font-size:.95rem; }
+    .heart { color:#e75480; font-size:1.3rem; margin-left:6px; animation:pulse 1.6s infinite; pointer-events:none; user-select:none; }
+    @keyframes fadeIn { from { opacity:0; transform: translateY(6px);} to { opacity:1; transform: translateY(0);} }
+    @keyframes pulse { 0% { transform: scale(1);} 50%{ transform: scale(1.15);} 100%{ transform: scale(1);} }
+    /* hearts appended to container */
+    .floating-heart {
+      position: absolute; pointer-events: none; user-select: none; opacity: .85; transform-origin: center;
+      animation: floatUp 3s ease forwards;
+    }
+    @keyframes floatUp { 0%{ transform: translateY(0) scale(1); } 100%{ transform: translateY(-120px) scale(.8); opacity: 0; } }
+    .controls { display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; }
+    .small { padding:8px 10px; font-size:.95rem; border-radius:8px; }
+    .visually-hidden { position:absolute !important; height:1px; width:1px; overflow:hidden; clip:rect(1px,1px,1px,1px); white-space:nowrap; border:0; padding:0; margin:-1px; }
+  </style>
+</head>
+<body>
+  <div class="container" id="main-container">
+    <h1>Morse Code Love Message <span class="heart" aria-hidden="true">♥</span></h1>
+    <p class="description">Enter the secret Morse code to reveal a special message just for you!</p>
+
+    <div class="morse-input-container" aria-hidden="false">
+      <label for="morse-input" class="visually-hidden">Morse code input</label>
+      <input id="morse-input" class="morse-input" type="text" placeholder="Enter Morse code here (e.g., ... --- ...)" autocomplete="off" inputmode="text" aria-label="Morse code input" />
+      <div class="controls">
+        <button class="button" id="decode-button" type="button">Decode Message</button>
+        <button class="button small" id="clear-button" type="button" aria-label="Clear input">Clear</button>
+      </div>
+    </div>
+
+    <div id="error-message" class="error-message" role="status" aria-live="polite"></div>
+
+    <div id="message-container" class="message-container" role="region" aria-live="polite" aria-atomic="true">
+      <div class="message-header">
+        <div>
+          <div class="decoded" id="decoded-text" aria-hidden="false"></div>
+          <div class="love-message" id="love-message"></div>
+          <div class="signature" id="signature"></div>
+        </div>
+        <div style="text-align:right;">
+          <button id="copy-decoded" class="button small" type="button">Copy Decoded</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="instructions" aria-hidden="false">
+      <h3>How to use:</h3>
+      <ul>
+        <li>Enter Morse code using dots (.) and dashes (-).</li>
+        <li>Separate letters with single spaces and words with either "/" or multiple spaces.</li>
+        <li>For example, "I LOVE YOU" in Morse code is: <span class="morse-example">.. / .-.. --- ...- . / -.-- --- ..-</span></li>
+      </ul>
+      <p class="hint">Hint: The correct code (unobfuscated) is "I LOVE YOU" in Morse code.</p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const inputEl = document.getElementById('morse-input');
+      const decodeBtn = document.getElementById('decode-button');
+      const clearBtn = document.getElementById('clear-button');
+      const messageContainer = document.getElementById('message-container');
+      const decodedTextEl = document.getElementById('decoded-text');
+      const loveMessageEl = document.getElementById('love-message');
+      const signatureEl = document.getElementById('signature');
+      const errorEl = document.getElementById('error-message');
+      const copyDecodedBtn = document.getElementById('copy-decoded');
+      const mainContainer = document.getElementById('main-container');
+
+      // Morse dictionary
+      const MORSE = {
+        '.-': 'A','-...':'B','-.-.':'C','-..':'D','.':'E',
+        '..-.':'F','--.':'G','....':'H','..':'I','.---':'J',
+        '-.-':'K','.-..':'L','--':'M','-.':'N','---':'O',
+        '.--.':'P','--.-':'Q','.-.':'R','...':'S','-':'T',
+        '..-':'U','...-':'V','.--':'W','-..-':'X','-.--':'Y',
+        '--..':'Z','.----':'1','..---':'2','...--':'3','....-':'4',
+        '.....':'5','-....':'6','--...':'7','---..':'8','----.':'9',
+        '-----':'0','/':' '
+      };
+
+      // Helper: normalize input and validate allowed characters
+      function normalizeInput(raw) {
+        if (typeof raw !== 'string') return null;
+        let s = raw.trim();
+        // only allow dot, dash, slash and whitespace
+        if (/[^.\\-\\/\\s]/.test(s)) return null;
+        // Convert multiple spaces (2 or more) to a word separator ' / '
+        s = s.replace(/\\s{2,}/g, ' / ');
+        // Normalize spaces around slashes
+        s = s.replace(/\\s*\\/\\s*/g, ' / ');
+        // Collapse multiple single spaces to single space between letters
+        s = s.replace(/\\s+/g, ' ');
+        return s;
+      }
+
+      // Decode morse string (normalized)
+      function decodeMorse(norm) {
+        if (!norm) return '';
+        return norm.split(' ').map(code => {
+          if (code === '/') return ' ';
+          return MORSE[code] ?? '?';
+        }).join('');
+      }
+
+      // Clean text for comparison (single spaces, uppercase)
+      function tidyText(s) {
+        return (s || '').replace(/\\s+/g, ' ').trim().toUpperCase();
+      }
+
+      // Show floating hearts (limited and cleaned)
+      function spawnHearts(count = 5) {
+        const max = Math.min(8, Math.max(1, count));
+        for (let i = 0; i < max; i++) {
+          setTimeout(() => {
+            const span = document.createElement('span');
+            span.className = 'floating-heart';
+            span.textContent = '♥';
+            const size = Math.round(Math.random() * 18 + 18);
+            span.style.fontSize = size + 'px';
+            span.style.left = (10 + Math.random() * 80) + '%';
+            span.style.top = (50 + Math.random() * 30) + '%';
+            span.style.color = '#e75480';
+            mainContainer.appendChild(span);
+            setTimeout(() => span.remove(), 3200);
+          }, i * 350);
+        }
+      }
+
+      // Display error (aria-live)
+      function showError(msg) {
+        errorEl.textContent = msg;
+        errorEl.style.display = 'block';
+        messageContainer.style.display = 'none';
+      }
+
+      function clearError() {
+        errorEl.textContent = '';
+        errorEl.style.display = 'none';
+      }
+
+      // Main decode action
+      function tryDecode() {
+        clearError();
+        const raw = inputEl.value || '';
+        const norm = normalizeInput(raw);
+        if (norm === null) {
+          showError('Invalid characters detected. Use only dots (.), dashes (-), spaces and / for word gaps.');
+          return;
+        }
+        if (!norm) {
+          showError('Please enter Morse code before decoding.');
+          return;
+        }
+
+        const decoded = decodeMorse(norm);
+        decodedTextEl.textContent = 'Decoded: ' + decoded;
+        // Show always the decoded result; only reveal the full love message if it exactly matches "I LOVE YOU"
+        const matchTarget = 'I LOVE YOU';
+        if (tidyText(decoded) === matchTarget) {
+          loveMessageEl.textContent = "Every day with you is a blessing. You make my world brighter and my heart fuller. I'm so grateful to have you in my life.";
+          signatureEl.textContent = "Forever yours,\nYour Loving Husband";
+          // allow newline in signature by rendering as text with line-breaks
+          signatureEl.style.whiteSpace = 'pre-wrap';
+          messageContainer.style.display = 'block';
+          spawnHearts(6);
+        } else {
+          loveMessageEl.textContent = '';
+          signatureEl.textContent = '';
+          messageContainer.style.display = 'block';
+        }
+      }
+
+      // Copy decoded text to clipboard
+      async function copyDecoded() {
+        const text = decodedTextEl.textContent || '';
+        if (!text) return;
+        try {
+          await navigator.clipboard.writeText(text.replace(/^Decoded:\\s*/, ''));
+          copyDecodedBtn.textContent = 'Copied!';
+          setTimeout(() => { copyDecodedBtn.textContent = 'Copy Decoded'; }, 1200);
+        } catch (e) {
+          // fallback
+          try {
+            const ta = document.createElement('textarea');
+            ta.value = text.replace(/^Decoded:\\s*/, '');
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+            copyDecodedBtn.textContent = 'Copied!';
+            setTimeout(() => { copyDecodedBtn.textContent = 'Copy Decoded'; }, 1200);
+          } catch {
+            copyDecodedBtn.textContent = 'Copy failed';
+            setTimeout(() => { copyDecodedBtn.textContent = 'Copy Decoded'; }, 1200);
+          }
+        }
+      }
+
+      // Event listeners
+      decodeBtn.addEventListener('click', tryDecode);
+      clearBtn.addEventListener('click', () => {
+        inputEl.value = '';
+        messageContainer.style.display = 'none';
+        clearError();
+        decodedTextEl.textContent = '';
+      });
+
+      inputEl.addEventListener('keyup', function (ev) {
+        if (ev.key === 'Enter') {
+          tryDecode();
+        }
+      });
+
+      copyDecodedBtn.addEventListener('click', copyDecoded);
+
+      // Initial accessibility hint: focus the input for quick typing
+      inputEl.focus();
+    })();
+  </script>
+</body>
+</html>
